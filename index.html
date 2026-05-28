@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhereAmI?</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: linear-gradient(135deg, #101827, #1f3b57);
+      color: white; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 620px; background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.22); border-radius: 24px; padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35); backdrop-filter: blur(14px); text-align: center;
+    }
+    h1 { margin: 0 0 10px; font-size: 46px; letter-spacing: -1px; }
+    .tagline { margin: 0 0 28px; color: #d7e6f5; font-size: 17px; line-height: 1.5; }
+    button, .affiliate-button {
+      border: none; border-radius: 999px; padding: 15px 24px; font-size: 17px; font-weight: bold;
+      cursor: pointer; color: #102033; background: #fff; transition: transform .15s ease, box-shadow .15s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,.22); margin: 5px; text-decoration: none; display: inline-block;
+    }
+    button:hover, .affiliate-button:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,.28); }
+    button:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+    .secondary { background: rgba(255,255,255,.18); color: white; border: 1px solid rgba(255,255,255,.32); box-shadow: none; display: none; }
+    .result { margin-top: 28px; text-align: left; background: rgba(0,0,0,.25); border-radius: 18px; padding: 20px; display: none; }
+    .street { margin: 0 0 14px; padding: 16px; background: rgba(255,255,255,.12); border-radius: 14px; text-align: center; font-size: 25px; font-weight: bold; }
+    .row { margin: 10px 0; line-height: 1.4; }
+    .label { color: #aac8e8; font-weight: bold; }
+    a { color: #fff; font-weight: bold; }
+    .status { margin-top: 18px; color: #d7e6f5; min-height: 22px; }
+    .small { margin-top: 22px; color: #bdd0e1; font-size: 13px; line-height: 1.5; }
+    .warning { color: #ffd9a3; font-size: 13px; margin-top: 12px; line-height: 1.5; }
+    .adbox {
+      margin-top: 22px; padding: 16px; border: 1px dashed rgba(255,255,255,.45); border-radius: 16px;
+      background: rgba(255,255,255,.08); color: #d7e6f5; font-size: 14px; line-height: 1.5; text-align: center;
+    }
+    .affiliate-area { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.18); text-align: center; }
+    .affiliate-button { background: #f7f2e8; color: #102033; font-size: 15px; padding: 12px 18px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>WhereAmI?</h1>
+    <p class="tagline">A quick location check for people, pets, luggage, walks, pub meet-ups, and mildly confused humans.</p>
+
+    <button id="findBtn">Find my location</button>
+    <button id="copyBtn" class="secondary">Copy location</button>
+    <button id="certificateBtn" class="secondary">Download your certificate</button>
+    <div class="status" id="status"></div>
+
+    <section class="result" id="resultBox">
+      <div class="street" id="streetName">Finding street name...</div>
+      <div class="row"><span class="label">Nearest address:</span> <span id="address">Checking...</span></div>
+      <div class="row"><span class="label">Accuracy:</span> <span id="accuracy"></span></div>
+      <div class="row"><span class="label">Checked at:</span> <span id="time"></span></div>
+      <div class="row"><a id="mapLink" target="_blank" rel="noopener">Open this location in Google Maps</a></div>
+
+      <div class="affiliate-area">
+        <a class="affiliate-button" href="https://amzn.to/4wQAoJH" target="_blank" rel="nofollow sponsored noopener">Portable GPS gadget</a>
+      </div>
+
+      <div class="adbox">
+        Advertisement space<br>
+        Replace this box later with your Google AdSense code after the site is approved.
+      </div>
+
+      <p class="warning">Street name is estimated from map data and may be approximate, especially indoors or on desktop computers.</p>
+    </section>
+
+    <p class="small">Your browser will ask permission before sharing location. This demo does not store your location. To show the street name, it asks OpenStreetMap/Nominatim to convert the coordinates into an approximate address.</p>
+  </main>
+
+  <script>
+    const findBtn = document.getElementById('findBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const certificateBtn = document.getElementById('certificateBtn');
+    const statusText = document.getElementById('status');
+    const resultBox = document.getElementById('resultBox');
+    const streetNameEl = document.getElementById('streetName');
+    const addressEl = document.getElementById('address');
+    const accuracyEl = document.getElementById('accuracy');
+    const timeEl = document.getElementById('time');
+    const mapLink = document.getElementById('mapLink');
+
+    let lastLocationText = '';
+    let certificateData = null;
+
+    findBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        statusText.textContent = 'Sorry, this browser does not support location detection.';
+        return;
+      }
+
+      findBtn.disabled = true;
+      copyBtn.style.display = 'none';
+      certificateBtn.style.display = 'none';
+      statusText.textContent = 'Asking your browser where you are...';
+      resultBox.style.display = 'none';
+
+      navigator.geolocation.getCurrentPosition(
+        async position => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy);
+          const now = new Date().toLocaleString();
+
+          accuracyEl.textContent = `within about ${accuracy} metres`;
+          timeEl.textContent = now;
+          mapLink.href = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+          streetNameEl.textContent = 'Finding street name...';
+          addressEl.textContent = 'Checking...';
+          statusText.textContent = 'Location found. Looking up street name...';
+          resultBox.style.display = 'block';
+
+          let street = 'Street name unavailable';
+          let displayAddress = 'Address not found';
+
+          try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+            const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) throw new Error('Address lookup failed');
+            const data = await response.json();
+            const address = data.address || {};
+
+            street = address.road || address.pedestrian || address.footway || address.cycleway || address.path ||
+                     address.neighbourhood || address.suburb || address.town || address.city || 'Street name not found';
+            displayAddress = data.display_name || 'Address not found';
+
+            statusText.textContent = 'Location and street found.';
+          } catch (err) {
+            statusText.textContent = 'Location found, but street name could not be checked.';
+          }
+
+          streetNameEl.textContent = street;
+          addressEl.textContent = displayAddress;
+
+          lastLocationText =
+            `WhereAmI?\n` +
+            `Street: ${street}\n` +
+            `Address: ${displayAddress}\n` +
+            `Accuracy: within about ${accuracy} metres\n` +
+            `Checked at: ${now}\n` +
+            `Google Maps: https://www.google.com/maps?q=${latitude},${longitude}`;
+
+          certificateData = { street, displayAddress, accuracy, now, mapUrl: mapLink.href };
+          copyBtn.style.display = 'inline-block';
+          certificateBtn.style.display = 'inline-block';
+          findBtn.disabled = false;
+        },
+        error => {
+          let message = 'Location could not be found.';
+          if (error.code === error.PERMISSION_DENIED) message = 'Permission was denied. Allow location access in your browser and try again.';
+          else if (error.code === error.POSITION_UNAVAILABLE) message = 'Location information is unavailable at the moment.';
+          else if (error.code === error.TIMEOUT) message = 'The location request timed out. Try again, or check Windows Location Services.';
+          statusText.textContent = message;
+          findBtn.disabled = false;
+        },
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
+      );
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(lastLocationText);
+        statusText.textContent = 'Location copied.';
+      } catch (err) {
+        statusText.textContent = 'Could not copy automatically. You can still copy the text manually.';
+      }
+    });
+
+    certificateBtn.addEventListener('click', () => {
+      if (!certificateData) return;
+      const certHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>WhereAmI Certificate</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f2f4f7;padding:40px;color:#102033}.certificate{max-width:760px;margin:auto;background:white;border:8px solid #1f3b57;border-radius:24px;padding:42px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.18)}h1{font-size:42px;margin:0 0 10px}.subtitle{font-size:18px;color:#48627e}.street{font-size:36px;font-weight:bold;margin:30px 0 10px;color:#1f3b57}.address{font-size:17px;line-height:1.5}.meta{margin-top:28px;font-size:15px;color:#526272}.footer{margin-top:34px;font-size:13px;color:#777}@media print{body{background:white}.certificate{box-shadow:none}}
+</style></head><body>
+<div class="certificate">
+<h1>WhereAmI?</h1>
+<div class="subtitle">Certificate of Approximate Location</div>
+<div class="street">${certificateData.street}</div>
+<div class="address">${certificateData.displayAddress}</div>
+<div class="meta">Checked at: ${certificateData.now}<br>Accuracy: within about ${certificateData.accuracy} metres<br><a href="${certificateData.mapUrl}">Open map location</a></div>
+<div class="footer">Generated by WhereAmI. Street and address are estimated from map data and should not be treated as legal proof of location.</div>
+</div>
+<script>window.print();<\/script>
+</body></html>`;
+
+      const blob = new Blob([certHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'whereami-certificate.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      statusText.textContent = 'Certificate downloaded.';
+    });
+  </script>
+</body>
+</html>
