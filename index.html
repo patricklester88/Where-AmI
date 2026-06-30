@@ -26,7 +26,10 @@ a{color:white;font-weight:bold}
 .ad-box{margin-top:25px;padding:18px;border:1px dashed rgba(255,255,255,.4);border-radius:15px;color:#d7e6f5;text-align:center}
 .warning{color:#ffd9a3;font-size:13px;margin-top:12px;line-height:1.5}
 .small{margin-top:22px;color:#bdd0e1;font-size:13px;line-height:1.5}
-.footer{margin-top:30px;font-size:14px;color:#d7e6f5}
+.top-nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;font-size:14px}
+.top-nav a,.footer a{color:white;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.35)}
+.top-nav a:hover,.footer a:hover{border-bottom-color:white}
+.footer{margin-top:30px;font-size:14px;color:#d7e6f5;line-height:1.9}
 .footer a{margin:0 8px}
 </style>
 
@@ -35,6 +38,13 @@ a{color:white;font-weight:bold}
 
 <body>
 <div class="card">
+<nav class="top-nav" aria-label="Site navigation">
+<a href="index.html">Home</a>
+<a href="about.html">About</a>
+<a href="privacy.html">Privacy</a>
+<a href="terms.html">Terms</a>
+<a href="contact.html">Contact</a>
+</nav>
 <h1>WhereAmI?</h1>
 
 <p class="tagline">
@@ -70,13 +80,14 @@ Street name is estimated from map data and may be approximate, especially indoor
 </div>
 
 <p class="small">
-Your browser will ask permission before sharing location. This demo does not store your location.
+Your browser will ask permission before sharing location. This demo does not store your location. By using this site, you agree to the Terms of Use.
 </p>
 
 <div class="footer">
 <hr>
 <a href="about.html">About</a> |
 <a href="privacy.html">Privacy Policy</a> |
+<a href="terms.html">Terms of Use</a> |
 <a href="contact.html">Contact</a>
 </div>
 </div>
